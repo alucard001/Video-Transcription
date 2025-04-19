@@ -1,0 +1,17 @@
+# Core dependencies for transcribe.py
+faster-whisper>=0.9.0
+numpy>=1.20.0
+ffmpeg-python>=0.2.0
+tqdm>=4.65.0
+huggingface_hub[hf_xet]>=0.16.0  # Added for better model download performance
+
+# Optional dependencies that might be needed depending on your setup
+torch>=2.0.0; sys_platform != "darwin" or platform_machine != "arm64"
+torchaudio>=2.0.0; sys_platform != "darwin" or platform_machine != "arm64"
+# For Apple Silicon (M1/M2) Macs
+torch>=2.0.0; sys_platform == "darwin" and platform_machine == "arm64"
+torchaudio>=2.0.0; sys_platform == "darwin" and platform_machine == "arm64"
+
+# For CUDA support (if using GPU)
+# Uncomment the following line if you're using CUDA
+# cupy-cuda11x>=11.0.0
