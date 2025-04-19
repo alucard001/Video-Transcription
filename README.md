@@ -1,4 +1,4 @@
-# YouTube Video Transcription Tool
+# Video Transcription Tool
 
 A Python-based tool for transcribing videos using the faster-whisper library.
 
