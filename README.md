@@ -1,14 +1,15 @@
-# Video Transcription Tool
+# YouTube Video & Audio Transcription Tool
 
-A Python-based tool for transcribing videos using the faster-whisper library.
+A Python-based tool for transcribing video and audio files using the faster-whisper library.
 
 ## Features
 
-- Transcribe video files to text with timestamps
-- Support for multiple Whisper model sizes (tiny, base, small, medium, large)
+- Transcribe video **and audio** files (mp4, mp3, wav, flac, m4a, aac, ogg) to text with optional timestamps
+- Support for multiple Whisper model sizes (tiny, base, small, medium, large-v1, large-v2, large-v3)
 - Automatic language detection
-- Progress tracking for long transcriptions
-- Optimized for Apple Silicon (M1/M2) Macs
+- Progress tracking for long transcriptions (if supported by your faster-whisper version)
+- Option to keep or delete extracted audio files
+- Flexible compute type and device selection (CPU, CUDA)
 
 ## Installation
 
@@ -27,30 +28,31 @@ A Python-based tool for transcribing videos using the faster-whisper library.
    pip install -r requirements.txt
    ```
 4. Install FFmpeg (required for audio extraction):
-   1. Mac
-    ```brew install ffmpeg```
-   2. Linux (Debian/Ubuntu)
-    ```sudo apt-get install ffmpeg```
-   3. Windows
-    ```choco install ffmpeg```
+   - Mac
+     ```brew install ffmpeg```
+   - Linux (Debian/Ubuntu)
+     ```sudo apt-get install ffmpeg```
+   - Windows
+     ```choco install ffmpeg```
 
 ## Usage
 
-Basic usage:
+Basic usage (video or audio file):
 ```bash
-python transcribe.py /path/to/video.mp4
+python transcribe.py /path/to/media.mp4
+python transcribe.py /path/to/audio.mp3
 ```
 
 With options:
 ```bash
-python transcribe.py /path/to/video.mp4 -m medium -t -v
+python transcribe.py /path/to/media.mp4 -m medium -t -v
 ```
 
 ## Command Line Options
 
 | Option               | Description                                                                  |
 | -------------------- | ---------------------------------------------------------------------------- |
-| `-o, --output`       | Path to save the transcript (default: same as video with .txt extension)     |
+| `-o, --output`       | Path to save the transcript (default: same as input with .txt extension)     |
 | `-m, --model`        | Whisper model size (tiny, base, small, medium, large-v1, large-v2, large-v3) |
 | `-l, --language`     | Language code (optional, will auto-detect if not provided)                   |
 | `-t, --timestamps`   | Include timestamps in the output                                             |
@@ -60,20 +62,25 @@ python transcribe.py /path/to/video.mp4 -m medium -t -v
 | `-v, --verbose`      | Print progress information                                                   |
 
 ## Examples
-Transcribe a video with timestamps and verbose output:
+Transcribe a video file with timestamps and verbose output:
 
 ```bash
 python transcribe.py my-video.mp4 -t -v
 ```
 
+Transcribe an audio file:
+```bash
+python transcribe.py my-audio.mp3 -t -v
+```
+
 Use a larger model for better accuracy:
 ```bash
-python transcribe.py my-video.mp4 -m medium -t -v
+python transcribe.py my-media.flac -m medium -t -v
 ```
 
 Specify output location:
 ```bash
-python transcribe.py my-video.mp4 -o my-transcript.txt
+python transcribe.py my-audio.wav -o my-transcript.txt
 ```
 
 ## Requirements

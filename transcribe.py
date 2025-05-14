@@ -49,7 +49,8 @@ def extract_audio(video_path: str, output_path: Optional[str] = None) -> str:
     ]
 
     try:
-        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(cmd, check=True, stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE)
     except subprocess.CalledProcessError as e:
         print(f"Error extracting audio: {e}")
         if os.path.exists(output_path):
@@ -87,12 +88,14 @@ def transcribe_audio(
     # Check if device is mps and convert to cpu since faster-whisper doesn't support mps directly
     if device == "mps":
         if verbose:
-            print("MPS device is not directly supported by faster-whisper, falling back to CPU")
+            print(
+                "MPS device is not directly supported by faster-whisper, falling back to CPU")
         device = "cpu"
 
     # Try to load the model with the requested compute type
     try:
-        model = WhisperModel(model_size, device=device, compute_type=compute_type)
+        model = WhisperModel(model_size, device=device,
+                             compute_type=compute_type)
     except RuntimeError as e:
         # If float16 fails, fall back to int8
         if compute_type == "float16" and "float16 compute type" in str(e):
@@ -100,7 +103,8 @@ def transcribe_audio(
                 print(f"Warning: {e}")
                 print("Falling back to int8 compute type")
             compute_type = "int8"
-            model = WhisperModel(model_size, device=device, compute_type=compute_type)
+            model = WhisperModel(model_size, device=device,
+                                 compute_type=compute_type)
         else:
             # Re-raise if it's a different error
             raise
@@ -115,7 +119,8 @@ def transcribe_audio(
         probe = ffmpeg.probe(audio_path)
         audio_duration = float(probe['format']['duration'])
         if verbose:
-            print(f"Audio duration: {format_timestamp(audio_duration)} (HH:MM:SS)")
+            print(
+                f"Audio duration: {format_timestamp(audio_duration)} (HH:MM:SS)")
     except Exception as e:
         if verbose:
             print(f"Could not determine audio duration: {e}")
@@ -129,7 +134,8 @@ def transcribe_audio(
                 percent = min(100, current_time / audio_duration * 100)
                 current_time_str = format_timestamp(current_time)
                 total_time_str = format_timestamp(audio_duration)
-                print(f"Progress: {current_time_str}/{total_time_str} ({percent:.1f}%)", end="\r")
+                print(
+                    f"Progress: {current_time_str}/{total_time_str} ({percent:.1f}%)", end="\r")
 
         # Transcribe the audio with progress callback
         segments, info = model.transcribe(
@@ -143,7 +149,8 @@ def transcribe_audio(
     except TypeError as e:
         if "unexpected keyword argument 'progress_callback'" in str(e):
             if verbose:
-                print("\nYour version of faster-whisper doesn't support progress callbacks.")
+                print(
+                    "\nYour version of faster-whisper doesn't support progress callbacks.")
                 print("Transcribing without progress updates...")
 
             # Transcribe without progress callback
@@ -160,7 +167,8 @@ def transcribe_audio(
 
     if verbose:
         print("\nTranscription complete!")
-        print(f"Detected language: {info.language} (probability: {info.language_probability:.2f})")
+        print(
+            f"Detected language: {info.language} (probability: {info.language_probability:.2f})")
 
     # Collect all segments
     results = []
@@ -251,10 +259,10 @@ def transcribe_video(
     verbose: bool = False
 ) -> str:
     """
-    Transcribe a video file to text.
+    Transcribe a video or audio file to text.
 
     Args:
-        video_path: Path to the video file
+        video_path: Path to the video or audio file
         output_path: Path to save the transcript (optional)
         model_size: Size of the Whisper model to use
         language: Language code (optional, will auto-detect if not provided)
@@ -269,39 +277,52 @@ def transcribe_video(
     """
     # Validate input file
     if not os.path.isfile(video_path):
-        raise FileNotFoundError(f"Video file not found: {video_path}")
+        raise FileNotFoundError(f"Video or audio file not found: {video_path}")
 
-    # Get video information
+    # Supported audio file extensions
+    audio_extensions = {'.mp3', '.wav', '.flac', '.m4a', '.aac', '.ogg'}
+
+    # Get file extension
+    file_ext = Path(video_path).suffix.lower()
+
+    # Get media information
     if verbose:
         try:
             import ffmpeg
             probe = ffmpeg.probe(video_path)
             duration = float(probe['format']['duration'])
-            print(f"Video duration: {format_timestamp(duration)} (HH:MM:SS)")
-            print(f"Video format: {probe['format']['format_long_name']}")
-            print(f"Video size: {int(probe['format']['size']) / (1024*1024):.2f} MB")
+            print(f"Media duration: {format_timestamp(duration)} (HH:MM:SS)")
+            print(f"Media format: {probe['format']['format_long_name']}")
+            print(
+                f"Media size: {int(probe['format']['size']) / (1024*1024):.2f} MB")
         except Exception as e:
-            print(f"Could not get video information: {e}")
+            print(f"Could not get media information: {e}")
 
     # Determine output path if not provided
     if output_path is None:
         video_path_obj = Path(video_path)
         output_path = str(video_path_obj.with_suffix(".txt"))
 
-    # Extract audio from video
-    if verbose:
-        print(f"Extracting audio from: {video_path}")
-        start_time = time.time()
-
-    audio_path = None
-    if keep_audio:
-        audio_path = str(Path(video_path).with_suffix(".wav"))
-
-    audio_path = extract_audio(video_path, audio_path)
-
-    if verbose:
-        extraction_time = time.time() - start_time
-        print(f"Audio extraction completed in {extraction_time:.2f} seconds")
+    # If input is audio, use it directly; otherwise, extract audio
+    if file_ext in audio_extensions:
+        if verbose:
+            print(
+                f"Input file is an audio file ({file_ext}), skipping audio extraction.")
+        audio_path = video_path
+        extracted = False
+    else:
+        if verbose:
+            print(f"Extracting audio from: {video_path}")
+            start_time = time.time()
+        audio_path = None
+        if keep_audio:
+            audio_path = str(Path(video_path).with_suffix(".wav"))
+        audio_path = extract_audio(video_path, audio_path)
+        extracted = True
+        if verbose:
+            extraction_time = time.time() - start_time
+            print(
+                f"Audio extraction completed in {extraction_time:.2f} seconds")
 
     try:
         # Transcribe the audio
@@ -320,7 +341,8 @@ def transcribe_video(
 
         if verbose:
             transcription_time = time.time() - start_time
-            print(f"Transcription completed in {format_time_duration(transcription_time)}")
+            print(
+                f"Transcription completed in {format_time_duration(transcription_time)}")
 
         # Save the transcript
         if verbose:
@@ -333,33 +355,40 @@ def transcribe_video(
             print(f"Total segments: {len(transcript)}")
             if transcript:
                 total_duration = transcript[-1][2] - transcript[0][1]
-                print(f"Transcribed content duration: {format_time_duration(total_duration)}")
+                print(
+                    f"Transcribed content duration: {format_time_duration(total_duration)}")
 
         return output_path
 
     finally:
-        # Clean up the temporary audio file
-        if not keep_audio and audio_path and os.path.exists(audio_path):
+        # Clean up the temporary audio file if it was extracted
+        if extracted and not keep_audio and audio_path and os.path.exists(audio_path) and audio_path != video_path:
             if verbose:
                 print(f"Cleaning up temporary audio file: {audio_path}")
             os.unlink(audio_path)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Transcribe video files to text using faster-whisper")
+    parser = argparse.ArgumentParser(
+        description="Transcribe video files to text using faster-whisper")
     parser.add_argument("video_path", help="Path to the video file")
-    parser.add_argument("-o", "--output", help="Path to save the transcript (default: same as video with .txt extension)")
+    parser.add_argument(
+        "-o", "--output", help="Path to save the transcript (default: same as video with .txt extension)")
     parser.add_argument("-m", "--model", default="base", choices=["tiny", "base", "small", "medium", "large-v1", "large-v2", "large-v3"],
                         help="Whisper model size (default: base)")
-    parser.add_argument("-l", "--language", help="Language code (optional, will auto-detect if not provided)")
-    parser.add_argument("-t", "--timestamps", action="store_true", help="Include timestamps in the output")
+    parser.add_argument(
+        "-l", "--language", help="Language code (optional, will auto-detect if not provided)")
+    parser.add_argument("-t", "--timestamps", action="store_true",
+                        help="Include timestamps in the output")
     parser.add_argument("-d", "--device", default="cpu", choices=["cpu", "cuda"],
                         help="Device to use for inference (default: cpu)")
-    parser.add_argument("-c", "--compute-type", default="float16",
+    parser.add_argument("-c", "--compute-type", default="int8",
                         choices=["int8", "int8_float16", "float16", "float32"],
                         help="Compute type for the model (default: float16, falls back to int8 if not supported)")
-    parser.add_argument("-k", "--keep-audio", action="store_true", help="Keep the extracted audio file")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Print progress information")
+    parser.add_argument("-k", "--keep-audio", action="store_true",
+                        help="Keep the extracted audio file")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="Print progress information")
 
     args = parser.parse_args()
 
